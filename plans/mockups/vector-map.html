@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<!-- Static mockup for plans/vector-map-ui.md. Synthetic dot layout; real titles/posters for the Vertigo selection. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>reelgraph — vector map mockup</title>
+<style>
+  :root {
+    --bg:#0a0b0f; --panel:#14161d; --panel-line:#232733; --hover:#2c3140;
+    --text:#e7e9ee; --muted:#8b90a0; --body:#cfd3dd; --accent:#5b8cff;
+    --like:#3fbf7f; --dislike:#e5484d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--text);
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif; }
+  canvas { position:fixed; inset:0; display:block; }
+
+  .box { background:rgba(20,22,29,0.95); border:1px solid var(--panel-line); border-radius:8px; }
+
+  #controls { position:fixed; left:360px; top:12px; width:280px; display:flex; flex-direction:column; gap:8px; z-index:25; }
+  #search { width:100%; padding:9px 11px; font-size:13px; color:var(--muted); display:flex; align-items:center; gap:8px; }
+  #search .kbd { margin-left:auto; font-size:10.5px; border:1px solid var(--panel-line); border-radius:4px; padding:0 5px; }
+  .ctl-head { padding:8px 11px; display:flex; justify-content:space-between; font-size:12.5px; }
+  .ctl-head .caret { color:var(--muted); }
+  .kind-row { display:flex; align-items:center; gap:8px; padding:3px 11px; font-size:12px; }
+  .kind-row .sw { width:9px; height:9px; border-radius:50%; }
+  .kind-row .c { margin-left:auto; color:var(--muted); font-size:11px; }
+  .kind-body { padding:2px 0 8px; }
+  #counter { color:var(--muted); font-size:12px; padding:0 2px; }
+
+  #detail { position:fixed; top:0; left:0; height:100%; width:340px; background:var(--panel);
+    border-right:1px solid var(--panel-line); z-index:41; overflow:hidden; }
+  #detail .close { position:absolute; top:10px; right:12px; color:#fff; font-size:20px; line-height:1;
+    background:rgba(0,0,0,0.45); border-radius:6px; padding:2px 8px; }
+  #detail img { width:100%; height:390px; object-fit:cover; object-position:top; display:block; }
+  .d-body { padding:14px 18px 18px; }
+  h2 { margin:0 0 4px; font-size:19px; line-height:1.25; font-weight:600; }
+  .meta { color:var(--muted); font-size:12.5px; line-height:1.6; }
+  .chips { margin:9px 0 12px; display:flex; flex-wrap:wrap; gap:5px; }
+  .chip { background:var(--panel-line); border-radius:20px; padding:2px 9px; font-size:11px; }
+  .chip.g { box-shadow:inset 0 0 0 1px #3d6b48; }
+  .chip.k { box-shadow:inset 0 0 0 1px #6b5133; }
+  .sec { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:4px 0 6px; }
+  .ov { font-size:13.5px; line-height:1.6; color:var(--body); }
+  .actions { display:flex; gap:6px; margin-top:14px; }
+  .btn { white-space:nowrap; border-radius:7px; padding:6px 9px; font-size:12px; border:1px solid var(--panel-line); background:var(--panel-line); }
+  .btn.like { background:rgba(63,191,127,0.16); border-color:#2f7d56; color:#8fe3b6; }
+  .btn.ghost { background:transparent; color:var(--muted); }
+  .credit { position:absolute; bottom:12px; left:18px; right:18px; font-size:10px; color:#666b7a; display:flex; gap:8px; align-items:center; }
+  .tmdb { background:linear-gradient(90deg,#90cea1,#01b4e4); color:#0d253f; font-weight:800; font-size:9px; padding:2px 5px; border-radius:3px; }
+
+  #panel { position:fixed; top:0; right:0; height:100%; width:330px; background:var(--panel);
+    border-left:1px solid var(--panel-line); z-index:40; }
+  .p-title { padding:18px 18px 8px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); display:flex; justify-content:space-between; }
+  .p-title span:last-child { text-transform:none; letter-spacing:0; }
+  .sim { display:flex; gap:10px; padding:8px 10px; margin:0 8px; border-radius:7px; align-items:center; }
+  .sim.hov { background:var(--panel-line); }
+  .sim img { width:34px; height:51px; border-radius:4px; object-fit:cover; flex:none; background:var(--panel-line); }
+  .sim .mid { flex:1; min-width:0; }
+  .sim .t { font-size:13px; display:flex; align-items:center; gap:7px; }
+  .sim .dot { width:8px; height:8px; border-radius:50%; flex:none; }
+  .sim .y { color:var(--muted); font-size:11.5px; }
+  .sim .r { color:var(--muted); font-size:11px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pct { font-size:11px; font-weight:600; padding:2px 7px; border-radius:20px; background:#1d2a4d; color:#a9bcff; flex:none; }
+
+  #tray { position:fixed; left:50%; transform:translateX(-50%); margin-left:5px; bottom:44px; z-index:30;
+    display:flex; align-items:center; gap:8px; padding:7px 7px 7px 14px; border-radius:999px;
+    box-shadow:0 8px 28px rgba(0,0,0,0.55); }
+  #tray .lbl { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-right:2px; }
+  .pick { font-size:12px; padding:4px 10px; border-radius:20px; background:var(--panel-line); }
+  .pick.l { box-shadow:inset 0 0 0 1px #2f7d56; }
+  .pick.l::before { content:"♥ "; color:#8fe3b6; }
+  .pick.d { box-shadow:inset 0 0 0 1px #7d2f33; color:var(--muted); text-decoration:line-through; }
+  .go { background:var(--accent); color:#fff; font-size:12.5px; font-weight:600; padding:7px 14px; border-radius:999px; margin-left:4px; }
+
+  #tooltip { position:fixed; z-index:31; background:rgba(20,22,29,0.96); border:1px solid var(--panel-line);
+    border-radius:8px; padding:8px 10px; font-size:12.5px; max-width:260px; line-height:1.4; box-shadow:0 6px 20px rgba(0,0,0,0.5); }
+  #tooltip .s { color:var(--muted); font-size:11.5px; margin-top:2px; }
+  #hint { position:fixed; left:360px; bottom:14px; color:var(--muted); font-size:11.5px; z-index:20; text-shadow:0 1px 3px #000; }
+  #zoom { position:fixed; right:346px; top:14px; z-index:20; display:flex; flex-direction:column; }
+  #zoom div { width:30px; height:30px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:16px; }
+  #zoom div + div { border-top:1px solid var(--panel-line); }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="detail">
+  <img src="https://image.tmdb.org/t/p/w342/15uOEfqBNTVtDUT7hGBVCka0rZz.jpg" crossorigin="anonymous" alt="">
+  <div class="close">×</div>
+  <div class="d-body">
+    <h2>Vertigo</h2>
+    <div class="meta">1958 · English · dir. Alfred Hitchcock · ★ 8.1</div>
+    <div class="meta" style="color:#5c7cfa">Crime &amp; Mystery · Hitchcock · Obsession</div>
+    <div class="chips">
+      <span class="chip g">Mystery</span><span class="chip g">Romance</span><span class="chip g">Thriller</span>
+      <span class="chip k">obsession</span><span class="chip k">san francisco</span><span class="chip k">detective</span><span class="chip k">acrophobia</span>
+    </div>
+    <div class="sec">Overview</div>
+    <div class="ov">A retired San Francisco detective suffering from acrophobia investigates the strange activities of an old friend's wife, all the while becoming dangerously obsessed with her.</div>
+    <div class="actions"><span class="btn like">♥ Liked</span><span class="btn">✕ Not for me</span><span class="btn ghost">IMDb ↗</span><span class="btn ghost">◎ Ring</span></div>
+  </div>
+  <div class="credit"><span class="tmdb">TMDB</span> This product uses the TMDB API but is not endorsed or certified by TMDB.</div>
+</div>
+
+<div id="controls">
+  <div id="search" class="box">⌕ <span>Search films, genres, keywords…</span><span class="kbd">/</span></div>
+  <div class="box"><div class="ctl-head"><span>Languages</span><span class="caret">▸</span></div></div>
+  <div class="box">
+    <div class="ctl-head"><span>Kinds · 13</span><span class="caret">▸</span></div>
+    <div class="kind-body" id="kinds" style="display:none"></div>
+  </div>
+  <div id="counter">5,950 films · 8 similar shown</div>
+</div>
+
+<div id="zoom" class="box"><div>+</div><div>−</div><div style="font-size:12px">⤢</div></div>
+
+<div id="panel">
+  <div class="p-title"><span>Similar films</span><span>match</span></div>
+  <div id="sims"></div>
+</div>
+
+<div id="tooltip" style="left:0;top:0;display:none"></div>
+<div id="hint">Scroll to zoom · Drag to pan · Click a film · ♥ films to get recommendations · L labels · / search</div>
+
+<div id="tray" class="box">
+  <span class="lbl">Your picks</span>
+  <span class="pick l">Vertigo</span><span class="pick l">Chinatown</span><span class="pick l">Mulholland Drive</span><span class="pick d">Fast &amp; Furious 6</span>
+  <span class="go">Recommend 12 →</span>
+</div>
+
+<script>
+const KINDS = [
+  ["drama","Drama","#6fbf8e",["Coming of Age","Family Drama","Biopic","Prison"]],
+  ["romance","Romance","#ff7a9a",["Period Romance","Romcom","Tragic Love"]],
+  ["music","Music & Musicals","#d77be0",["Musical","Band Biopic","Dance"]],
+  ["comedy","Comedy","#f2c14e",["Dark Comedy","Buddy","Satire","Teen"]],
+  ["family","Family & Animation","#ffb067",["Pixar · Disney","Ghibli","Talking Animals"]],
+  ["fantasy","Fantasy","#a98bf0",["Sword & Sorcery","Fairy Tale","Superhero"]],
+  ["adventure","Adventure & Western","#c9a26b",["Western","Treasure Hunt","Survival"]],
+  ["action","Action","#ff8a4c",["Martial Arts","Heist","Spy","Car Chase"]],
+  ["scifi","Science Fiction","#4fb6f0",["Space Opera","Dystopia","Time Travel","AI · Robots"]],
+  ["horror","Horror","#d2433f",["Slasher","Supernatural","Zombie"]],
+  ["thriller","Thriller","#9aa3d9",["Psychological","Conspiracy","Erotic Thriller"]],
+  ["crime","Crime & Mystery","#5c7cfa",["Hitchcock · Obsession","Neo-Noir","Mob · Mafia","Whodunit"]],
+  ["history","History & War","#b9b27a",["WWII","Epic","Cold War"]],
+];
+const COUNTS = [262,171,118,228,196,164,170,231,189,203,182,212,187];
+
+// seeded rng
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+const rnd = mulberry32(7);
+const gauss = () => { let u=0,v=0; while(!u)u=rnd(); while(!v)v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
+const hex2rgb = h => [1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const mix = (a,b,t) => a.map((v,i)=>Math.round(v+(b[i]-v)*t));
+
+// kinds list
+document.getElementById("kinds").innerHTML = KINDS.map((k,i)=>
+  `<div class="kind-row"><span class="sw" style="background:${k[2]}"></span>${k[1]}<span class="c">${COUNTS[i]}</span></div>`).join("");
+
+// similar list
+const SIMS = [
+  ["Marnie",1964,"/nRRy4VO2A3Py7wiZBPz11PAlogp.jpg",97,"dir. Hitchcock · obsession · Sean Connery","#5c7cfa"],
+  ["Rear Window",1954,"/ILVF0eJxHMddjxeQhswFtpMtqx.jpg",95,"dir. Hitchcock · James Stewart · 1950s","#9aa3d9"],
+  ["Spellbound",1945,"/dPAox7jGScLBvxKLeRptJIBF7v.jpg",93,"dir. Hitchcock · psychiatry · romance","#9aa3d9"],
+  ["Psycho",1960,"/yz4QVqPx3h1hD1DfqqQkCq3rmxW.jpg",91,"dir. Hitchcock · obsession · split personality","#d2433f"],
+  ["To Catch a Thief",1955,"/cbMRkBGBgo3aLJK2M4MyicvkPLQ.jpg",88,"dir. Hitchcock · 1950s · romance","#5c7cfa"],
+  ["Suspicion",1941,"/clWNlzlbyaEoIK63lcFjqBmXoQz.jpg",84,"dir. Hitchcock · suspicion of murder","#5c7cfa"],
+  ["Dead Again",1991,"/irEnDVtxox6gnRJuwtEZuxvl2vZ.jpg",79,"amnesia · obsession · reincarnation","#9aa3d9"],
+  ["Color of Night",1994,"/w1OBPkf3BxeC7543YzFwiKIwBFJ.jpg",71,"obsession · psychiatrist · erotic thriller","#ff7a9a"],
+];
+document.getElementById("sims").innerHTML = SIMS.map((s,i)=>
+  `<div class="sim${i===1?" hov":""}"><img src="https://image.tmdb.org/t/p/w92${s[2]}" alt="">
+   <div class="mid"><div class="t"><span class="dot" style="background:${s[5]}"></span>${s[0]} <span class="y">${s[1]}</span></div>
+   <div class="r">${s[4]}</div></div><span class="pct">${s[3]}%</span></div>`).join("");
+
+// ---------- canvas ----------
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const W = innerWidth, H = innerHeight, dpr = window.devicePixelRatio||1;
+cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+"px"; cv.style.height=H+"px"; ctx.scale(dpr,dpr);
+
+// map region between panels
+const L = 340, R = W-330, CX = (L+R)/2 + 6, CY = H/2 - 10;
+const RX = (R-L)/2 - 150, RY = H/2 - 175;
+const centres = KINDS.map((k,i)=>{
+  const a = -Math.PI/2 - 9*Math.PI/13 + i/KINDS.length*2*Math.PI;
+  return { x: CX + Math.cos(a)*RX, y: CY + Math.sin(a)*RY, r: 30 + Math.sqrt(COUNTS[i])*4.4 };
+});
+
+const films = [];  // {x,y,c:[r,g,b],s,k}
+const subs = [];
+KINDS.forEach((k,ki)=>{
+  const c = centres[ki], base = hex2rgb(k[2]);
+  const nsub = k[3].length;
+  const subPos = k[3].map((name,si)=>{
+    const a = rnd()*Math.PI*2 + si*2.1, d = c.r*(0.3+0.45*rnd());
+    const p = { x:c.x+Math.cos(a)*d, y:c.y+Math.sin(a)*d, name, k:ki, n:0, light:(si%2?1:-1)*0.07 };
+    subs.push(p); return p;
+  });
+  for (let n=0; n<COUNTS[ki]*2.4; n++){
+    const hybrid = rnd() < 0.18;
+    let x, y, col = base;
+    if (hybrid) {
+      // pulled toward a ring neighbour: sits on the border, colour mixed
+      const other = (ki + (rnd()<0.5?1:KINDS.length-1)) % KINDS.length;
+      const o = centres[other], t = 0.2 + rnd()*0.35;
+      x = c.x + (o.x-c.x)*t + gauss()*c.r*0.28;
+      y = c.y + (o.y-c.y)*t + gauss()*c.r*0.28;
+      col = mix(base, hex2rgb(KINDS[other][2]), 0.15 + t*0.5);
+    } else {
+      const sp = subPos[Math.floor(rnd()*nsub)];
+      const spread = c.r*(0.14 + rnd()*0.2);
+      x = sp.x + gauss()*spread; y = sp.y + gauss()*spread; sp.n++;
+      col = mix(base, sp.light>0?[255,255,255]:[0,0,0], Math.abs(sp.light));
+    }
+    const pop = Math.pow(rnd(), 2.6);
+    films.push({ x, y, c: col, s: 0.7 + pop*1.7, k: ki });
+  }
+});
+
+// faint cross-kind threads
+ctx.lineWidth = 0.6;
+for (let i=0;i<260;i++){
+  const a = films[Math.floor(rnd()*films.length)];
+  let b = films[Math.floor(rnd()*films.length)];
+  const dk = Math.abs(a.k-b.k); if (!(dk===1 || dk===KINDS.length-1)) continue;
+  ctx.strokeStyle = `rgba(${a.c.join(",")},0.07)`;
+  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+}
+
+// nebula
+centres.forEach((c,i)=>{
+  const g = ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,c.r*1.5);
+  const [r,gg,b] = hex2rgb(KINDS[i][2]);
+  g.addColorStop(0,`rgba(${r},${gg},${b},0.07)`); g.addColorStop(1,`rgba(${r},${gg},${b},0)`);
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(c.x,c.y,c.r*1.5,0,Math.PI*2); ctx.fill();
+});
+
+// dots (additive for a soft galaxy look)
+const BASE = 1.6;
+ctx.globalCompositeOperation = "lighter";
+for (const f of films){
+  ctx.fillStyle = `rgba(${f.c.join(",")},0.82)`;
+  ctx.beginPath(); ctx.arc(f.x,f.y,BASE*f.s,0,Math.PI*2); ctx.fill();
+}
+ctx.globalCompositeOperation = "source-over";
+
+// selection: Vertigo in crime, toward thriller
+const ci = 11, ti = 10, cc = centres[ci], tc = centres[ti];
+const V = { x: cc.x + (tc.x-cc.x)*0.22, y: cc.y + (tc.y-cc.y)*0.22 - 8 };
+const nbKinds = [11,10,10,9,11,11,10,1];
+const nbs = SIMS.map((s,i)=>{
+  const a = -2.3 + i*0.78 + (rnd()-0.5)*0.4, d = 32 + (100-s[3])*2.6 + rnd()*14;
+  return { x: V.x + Math.cos(a)*d, y: V.y + Math.sin(a)*d, col: s[5], m: s[3], t: s[0] };
+});
+// Psycho pulled toward horror, Color of Night toward romance (cross-kind threads)
+nbs[3].x += (centres[9].x - nbs[3].x)*0.25; nbs[3].y += (centres[9].y - nbs[3].y)*0.25;
+nbs[7].x += (centres[1].x - nbs[7].x)*0.12; nbs[7].y += (centres[1].y - nbs[7].y)*0.12;
+
+for (const n of nbs){
+  ctx.strokeStyle = n === nbs[1] ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.35)";
+  ctx.lineWidth = 1 + (n.m-55)/12 * 0.45;
+  ctx.beginPath(); ctx.moveTo(V.x,V.y); ctx.lineTo(n.x,n.y); ctx.stroke();
+}
+for (const n of nbs){
+  ctx.fillStyle = n.col; ctx.beginPath(); ctx.arc(n.x,n.y,4.4,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle="#fff"; ctx.lineWidth=1.5; ctx.stroke();
+}
+// selected halo
+const halo = ctx.createRadialGradient(V.x,V.y,0,V.x,V.y,26);
+halo.addColorStop(0,"rgba(92,124,250,0.55)"); halo.addColorStop(1,"rgba(92,124,250,0)");
+ctx.fillStyle=halo; ctx.beginPath(); ctx.arc(V.x,V.y,26,0,Math.PI*2); ctx.fill();
+ctx.fillStyle="#5c7cfa"; ctx.beginPath(); ctx.arc(V.x,V.y,6.5,0,Math.PI*2); ctx.fill();
+ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.stroke();
+
+// recommended results (ringed) from the tray picks — a few highlighted hits elsewhere
+// (shown faintly to hint at the recommend view; real view dims everything else)
+
+// labels
+function label(text, x, y, size, color, weight, alpha=1){
+  ctx.font = `${weight} ${size}px -apple-system, "Segoe UI", Roboto, Inter, sans-serif`;
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.globalAlpha = alpha;
+  ctx.lineWidth=4; ctx.strokeStyle="rgba(10,11,15,0.92)"; ctx.lineJoin="round";
+  ctx.strokeText(text,x,y); ctx.fillStyle=color; ctx.fillText(text,x,y);
+  ctx.globalAlpha = 1;
+}
+subs.forEach(s=>{ if (s.name !== "Hitchcock · Obsession") label(s.name, s.x, s.y, 10.5, "#e7e9ee", 500, 0.55); });
+centres.forEach((c,i)=>{
+  const out = 1 + 0.0;
+  const dx = c.x-CX, dy = c.y-CY, d = Math.hypot(dx,dy);
+  label(KINDS[i][1], c.x + dx/d*(c.r*0.95), c.y + dy/d*(c.r*0.95), 15, KINDS[i][2], 650);
+});
+label("Vertigo", V.x, V.y - 16, 12.5, "#fff", 650);
+nbs.forEach((n,i)=> label(n.t, n.x, n.y + 12, 10.5, "#e7e9ee", 500, i===1?1:0.85));
+
+// tooltip on Rear Window (hovered in list)
+const tt = document.getElementById("tooltip");
+tt.innerHTML = `<div style="font-weight:600">Rear Window</div><div class="s">1954 · English · Thriller, Mystery, Drama</div>
+  <div class="s" style="color:#9aa3d9">Thriller · Psychological — 95% match</div>`;
+tt.style.display="block"; tt.style.left=(nbs[1].x+12)+"px"; tt.style.top=(nbs[1].y-60)+"px";
+</script>
+</body>
+</html>
