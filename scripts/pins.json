@@ -1,0 +1,14 @@
+{
+  "_": "Films the map must include (looked up by title and year), and TMDB ids moved to another kind when the genre rule gets them wrong.",
+  "include": [
+    { "title": "Vertigo", "year": 1958 },
+    { "title": "Rear Window", "year": 1954 },
+    { "title": "Psycho", "year": 1960 },
+    { "title": "Chinatown", "year": 1974 },
+    { "title": "Mulholland Drive", "year": 2001 },
+    { "title": "Spirited Away", "year": 2001 },
+    { "title": "Parasite", "year": 2019 },
+    { "title": "In the Mood for Love", "year": 2000 }
+  ],
+  "overrides": {}
+}
