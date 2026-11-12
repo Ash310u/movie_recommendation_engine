@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!-- Mockup for plans/chat-discovery.md. Draws the real map from /public/data/map.json (serve the
+     project root over http), with a chat answer's films glowing. The chat text is illustrative. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>reelgraph — chat mockup</title>
+<style>
+  :root { --bg:#0a0b0f; --panel:#14161d; --panel-line:#232733; --text:#e7e9ee; --muted:#8b90a0;
+    --body:#cfd3dd; --accent:#5b8cff; --glow:#ffd36e; --float:rgba(20,22,29,0.95); }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--text);
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif; }
+  canvas { position:fixed; inset:0; }
+  .box { background:var(--float); border:1px solid var(--panel-line); border-radius:8px; }
+
+  #controls { position:fixed; left:14px; top:12px; width:280px; display:flex; flex-direction:column; gap:8px; z-index:5; }
+  #search { padding:9px 11px; font-size:13px; color:var(--muted); display:flex; gap:8px; }
+  #search .kbd { margin-left:auto; font-size:10.5px; border:1px solid var(--panel-line); border-radius:4px; padding:0 5px; }
+  .head { padding:8px 11px; font-size:12.5px; display:flex; justify-content:space-between; }
+  .head span:last-child { color:var(--muted); }
+  #counter { color:var(--muted); font-size:12px; padding:0 2px; }
+  #counter b { color:var(--glow); font-weight:600; }
+
+  #panel { position:fixed; top:0; right:0; height:100%; width:330px; background:var(--panel); border-left:1px solid var(--panel-line); z-index:6; }
+  .p-title { padding:18px 18px 4px; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); display:flex; justify-content:space-between; }
+  .p-sub { padding:0 18px 10px; font-size:11.5px; color:var(--muted); font-style:italic; }
+  .row { display:flex; gap:10px; padding:8px 10px; margin:0 8px; border-radius:7px; align-items:center; }
+  .row.hov { background:var(--panel-line); }
+  .num { width:20px; height:20px; border-radius:50%; background:var(--glow); color:#14161d; font-size:11px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; flex:none; }
+  .row img { width:34px; height:51px; border-radius:4px; object-fit:cover; flex:none; background:var(--panel-line); }
+  .mid { flex:1; min-width:0; }
+  .t { font-size:13px; display:flex; gap:7px; align-items:center; }
+  .t .dot { width:8px; height:8px; border-radius:50%; flex:none; }
+  .t .y { color:var(--muted); font-size:11.5px; }
+  .why { color:var(--body); font-size:11.5px; margin-top:3px; line-height:1.35; }
+  .src { color:var(--muted); font-size:10px; margin-top:2px; }
+
+  #chat { position:fixed; left:calc(50% - 165px); transform:translateX(-50%); bottom:16px; width:640px; z-index:7;
+    border-radius:14px; box-shadow:0 10px 36px rgba(0,0,0,0.6); overflow:hidden; }
+  .thread { padding:14px 16px 6px; display:flex; flex-direction:column; gap:10px; max-height:300px; }
+  .msg { font-size:13.5px; line-height:1.5; max-width:88%; }
+  .me { align-self:flex-end; background:#263056; color:#dfe6ff; padding:8px 12px; border-radius:12px 12px 4px 12px; }
+  .ai { align-self:flex-start; color:var(--body); }
+  .ai .who { font-size:11px; color:var(--muted); margin-bottom:3px; display:flex; gap:6px; align-items:center; }
+  .ai .who .badge { background:var(--panel-line); border-radius:4px; padding:0 6px; font-size:10px; }
+  .ref { display:inline-flex; align-items:center; gap:4px; background:rgba(255,211,110,0.12); border:1px solid rgba(255,211,110,0.35);
+    color:#ffe6a8; border-radius:20px; padding:0 8px 0 3px; font-size:12px; margin:1px 1px; white-space:nowrap; }
+  .ref i { font-style:normal; width:15px; height:15px; border-radius:50%; background:var(--glow); color:#14161d; font-size:9.5px; font-weight:700;
+    display:inline-flex; align-items:center; justify-content:center; }
+  .sugg { display:flex; gap:6px; padding:2px 16px 10px; flex-wrap:wrap; }
+  .sugg span { font-size:11.5px; color:var(--muted); border:1px solid var(--panel-line); border-radius:20px; padding:3px 10px; }
+  .input { display:flex; align-items:center; gap:8px; border-top:1px solid var(--panel-line); padding:9px 9px 9px 16px; }
+  .input .ph { flex:1; color:var(--muted); font-size:13.5px; }
+  .input .send { width:32px; height:32px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; }
+  .input .clear { font-size:11.5px; color:var(--muted); border:1px solid var(--panel-line); border-radius:6px; padding:3px 8px; }
+
+  #zoom { position:fixed; right:346px; top:14px; z-index:5; display:flex; flex-direction:column; }
+  #zoom div { width:30px; height:30px; display:flex; align-items:center; justify-content:center; color:var(--muted); }
+  #zoom div + div { border-top:1px solid var(--panel-line); }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div id="controls">
+  <div id="search" class="box">⌕ <span>Search films, genres, keywords…</span><span class="kbd">/</span></div>
+  <div class="box head"><span>Languages</span><span>▸</span></div>
+  <div class="box head"><span>Kinds · 13</span><span>▸</span></div>
+  <div id="counter">2,467 films · <b>8 from chat</b></div>
+</div>
+
+<div id="zoom" class="box"><div>+</div><div>−</div><div style="font-size:12px">⤢</div></div>
+
+<div id="panel">
+  <div class="p-title"><span>From chat</span><span>8 films</span></div>
+  <div class="p-sub">“a movie where a rich lifestyle is shown”</div>
+  <div id="rows"></div>
+</div>
+
+<div id="chat" class="box">
+  <div class="thread">
+    <div class="msg me">I want to watch a movie where a rich lifestyle is shown</div>
+    <div class="msg ai">
+      <div class="who">reelgraph <span class="badge">local · qwen 7B</span> <span class="badge">searched 2,467 films</span></div>
+      Wealth front and centre, from 1920s excess to modern billionaires:
+      <span class="ref"><i>1</i>The Great Gatsby</span> and <span class="ref"><i>2</i>The Wolf of Wall Street</span> are the most lavish;
+      <span class="ref"><i>3</i>Crazy Rich Asians</span> and <span class="ref"><i>7</i>The Devil Wears Prada</span> keep it light;
+      <span class="ref"><i>5</i>Saltburn</span> and <span class="ref"><i>8</i>Parasite</span> look at the rich with a darker eye.
+      Want it funnier, darker, or more recent?
+    </div>
+  </div>
+  <div class="sugg"><span>Only comedies</span><span>Darker</span><span>More like #2</span><span>Not before 2000</span></div>
+  <div class="input"><span class="ph">Ask for a film, or refine…</span><span class="clear">Clear</span><span class="send">↑</span></div>
+</div>
+
+<script type="module">
+const RESULTS = [
+  [64682, 'Lavish 1920s Long Island parties and old-money excess'],
+  [106646, 'A stockbroker’s fortune: yachts, mansions and wild spending'],
+  [455207, 'Singapore’s ultra-wealthy families and an extravagant wedding'],
+  [1213, 'Idle rich Americans on the Italian Riviera in the 1950s'],
+  [930564, 'A summer at a decadent aristocratic English estate'],
+  [497828, 'Influencers and billionaires on a luxury yacht cruise'],
+  [350, 'High fashion and Manhattan glamour at a top magazine'],
+  [496243, 'A wealthy family’s modern mansion, seen from below'],
+];
+const raw = await (await fetch('/public/data/map.json')).json();
+const films = raw.films.map(([id, kind, x, y, pop, title, year, poster, color]) => ({ id, kind, x, y, pop, title, year, poster, color }));
+const byId = new Map(films.map(f => [f.id, f]));
+const picked = RESULTS.map(([id, why]) => ({ f: byId.get(id), why }));
+
+document.getElementById('rows').innerHTML = picked.map(({ f, why }, n) =>
+  `<div class="row${n === 1 ? ' hov' : ''}"><span class="num">${n + 1}</span><img src="https://image.tmdb.org/t/p/w92${f.poster}" alt="">
+   <div class="mid"><div class="t"><span class="dot" style="background:${raw.kinds[f.kind].color}"></span>${f.title} <span class="y">${f.year}</span></div>
+   <div class="why">${why}</div><div class="src">from the film’s Wikipedia plot</div></div></div>`).join('');
+
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const W = innerWidth, H = innerHeight, dpr = devicePixelRatio || 1;
+cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px'; ctx.scale(dpr, dpr);
+const area = { x: 0, y: 0, w: W - 330, h: H - 190 };
+const s = Math.min(area.w, area.h) / 2.35, tx = area.x + area.w / 2, ty = area.y + area.h / 2 + 10;
+const X = x => x * s + tx, Y = y => y * s + ty;
+const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',');
+
+raw.kinds.forEach(k => {
+  const g = ctx.createRadialGradient(X(k.cx), Y(k.cy), 0, X(k.cx), Y(k.cy), k.r * s * 1.7);
+  g.addColorStop(0, `rgba(${rgb(k.color)},0.03)`); g.addColorStop(1, `rgba(${rgb(k.color)},0)`);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(X(k.cx), Y(k.cy), k.r * s * 1.7, 0, 7); ctx.fill();
+});
+const glowIds = new Set(RESULTS.map(r => r[0]));
+ctx.globalCompositeOperation = 'lighter';
+for (const f of films) {
+  if (glowIds.has(f.id)) continue;
+  ctx.globalAlpha = 0.22; ctx.fillStyle = f.color;
+  ctx.beginPath(); ctx.arc(X(f.x), Y(f.y), 1.6 * (0.7 + f.pop * 1.7), 0, 7); ctx.fill();
+}
+ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+
+function label(t, x, y, size, color, weight, a = 1) {
+  ctx.font = `${weight} ${size}px -apple-system, "Segoe UI", Roboto, Inter, sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = a;
+  ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(10,11,15,0.92)'; ctx.strokeText(t, x, y);
+  ctx.fillStyle = color; ctx.fillText(t, x, y); ctx.globalAlpha = 1;
+}
+raw.kinds.forEach(k => {
+  const d = Math.hypot(k.cx, k.cy) || 1;
+  label(k.name, X(k.cx + k.cx / d * k.r * 1.02), Y(k.cy + k.cy / d * k.r * 1.02), 15, k.color, 650, 0.55);
+});
+
+// Chat results: soft gold glow, a ring in the kind colour, a numbered badge and the title.
+picked.forEach(({ f }, n) => {
+  const x = X(f.x), y = Y(f.y);
+  const g = ctx.createRadialGradient(x, y, 0, x, y, 30);
+  g.addColorStop(0, 'rgba(255,211,110,0.55)'); g.addColorStop(1, 'rgba(255,211,110,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 30, 0, 7); ctx.fill();
+  ctx.fillStyle = f.color; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, 7); ctx.fill();
+  ctx.strokeStyle = n === 1 ? '#fff' : '#ffd36e'; ctx.lineWidth = n === 1 ? 2.5 : 1.8; ctx.stroke();
+  const bx = x + 9, by = y - 9;
+  ctx.fillStyle = '#ffd36e'; ctx.beginPath(); ctx.arc(bx, by, 7.5, 0, 7); ctx.fill();
+  ctx.fillStyle = '#14161d'; ctx.font = '700 9.5px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(String(n + 1), bx, by + 0.5);
+  label(f.title, x, y + 17, 11.5, '#fff', 600);
+});
+document.title += ' ✓';
+</script>
+</body>
+</html>
